@@ -7,22 +7,28 @@ import {
   Post,
   Query,
   Req,
+  Res,
   Sse,
 } from '@nestjs/common';
 import { AppService } from './app.service';
 import {
   concatMap,
   connectable,
+  endWith,
   from,
   fromEvent,
+  interval,
+  map,
+  mergeMap,
   multicast,
   Observable,
   Observer,
   startWith,
   Subject,
+  take,
 } from 'rxjs';
 import PQueue from 'p-queue';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import * as crypto from 'crypto';
 
 const queue = new PQueue({ concurrency: 1 });
@@ -81,6 +87,24 @@ export class AppController {
     });
 
     return subject.pipe(startWith({ data: { id, status: 'task-start' } }));
+  }
+
+  @Sse('sse3')
+  sse3(@Req() req: Request): Observable<any> {
+    return interval(1000).pipe(
+      take(5),
+      mergeMap((val, index) => {
+        return new Observable((subscriber) => {
+          subscriber.next({
+            data: `Hello World! ${new Date().toISOString()}`,
+          });
+
+          subscriber.complete();
+        });
+      }),
+      startWith({ data: 'Task started' }),
+      endWith({ data: 'Task completed' }),
+    );
   }
 
   @Post('test')
